@@ -1,22 +1,29 @@
 import { CreateWebWorkerMLCEngine, deleteModelAllInfoInCache, hasModelInCache, type MLCEngineInterface } from '@mlc-ai/web-llm';
-import { MAX_ANSWER_TOKENS, MODEL_ID, buildMessages, removeOnCloseEnabled, type Turn } from './llm-config';
+import { MAX_ANSWER_TOKENS, MODELS, buildMessages, removeOnCloseEnabled, type Turn } from './llm-config';
 
 let engine: MLCEngineInterface | null = null;
+let loadedId: string | null = null;
 
-export async function isModelCached(): Promise<boolean> {
-  try {
-    return await hasModelInCache(MODEL_ID);
-  } catch {
-    return false;
+export const loadedModelId = () => loadedId;
+
+export async function cachedModelIds(): Promise<string[]> {
+  const found: string[] = [];
+  for (const m of MODELS) {
+    try {
+      if (await hasModelInCache(m.id)) found.push(m.id);
+    } catch { /* treat as not cached */ }
   }
+  return found;
 }
 
-export async function loadModel(onProgress: (fraction: number, text: string) => void): Promise<void> {
-  if (engine) return;
+export async function loadModel(modelId: string, onProgress: (fraction: number, text: string) => void): Promise<void> {
+  if (engine && loadedId === modelId) return;
+  await unloadModel();
   const worker = new Worker(new URL('../llm.worker.ts', import.meta.url), { type: 'module' });
-  engine = await CreateWebWorkerMLCEngine(worker, MODEL_ID, {
+  engine = await CreateWebWorkerMLCEngine(worker, modelId, {
     initProgressCallback: (r) => onProgress(r.progress, r.text),
   });
+  loadedId = modelId;
 }
 
 export async function unloadModel(): Promise<void> {
@@ -24,21 +31,28 @@ export async function unloadModel(): Promise<void> {
     await engine?.unload();
   } finally {
     engine = null;
+    loadedId = null;
   }
 }
 
-/** Remove the downloaded weights from this browser. */
+async function deleteAll(): Promise<void> {
+  for (const m of MODELS) {
+    try {
+      await deleteModelAllInfoInCache(m.id);
+    } catch { /* not cached */ }
+  }
+}
+
+/** Remove every downloaded model from this browser. */
 export async function deleteModelData(): Promise<void> {
   await unloadModel();
-  await deleteModelAllInfoInCache(MODEL_ID);
+  await deleteAll();
 }
 
 /** Call once at startup: finishes a "remove on close" deletion requested in a previous visit. */
 export async function cleanupIfRequested(): Promise<void> {
   if (!removeOnCloseEnabled() || engine) return;
-  try {
-    await deleteModelAllInfoInCache(MODEL_ID);
-  } catch { /* nothing cached */ }
+  await deleteAll();
 }
 
 export function installCloseHandler() {

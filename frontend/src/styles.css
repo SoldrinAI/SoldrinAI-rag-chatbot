@@ -34,6 +34,13 @@ h2{margin:0;font-size:19px;font-weight:650;letter-spacing:-.01em}.muted{color:va
 .notes{font-size:13px;padding-left:18px;margin:0}
 .model-card{border:1px solid var(--line);background:var(--tint);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .model-card p{margin:0}
+.field{display:flex;flex-direction:column;gap:8px}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;outline:none;width:100%}
+select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0b74c926}
+.warn{display:flex;gap:10px;align-items:flex-start;background:#fff4d6;border:1px solid #f0d98a;color:#7a5200;border-radius:8px;padding:10px 12px;font-size:13px}
+.warn svg{flex:none;margin-top:2px}
+.active-model{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--tint);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.active-model span{display:inline-flex;align-items:center;gap:6px}
 .messages{min-height:240px;max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:2px}
 .empty{margin:auto;text-align:center}
 .msg{display:flex;flex-direction:column;max-width:88%}.msg.user{align-self:flex-end;align-items:flex-end}

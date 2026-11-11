@@ -6,7 +6,7 @@ import { DEFAULT_LIMITS, embedTexts, fetchLimits, parseFile, type Limits, type P
 import { rowChunks, semanticChunks } from './lib/chunking';
 import { buildIndex, hybridSearch, type Index } from './lib/search';
 import {
-  MODEL_DOWNLOAD_MB, MODEL_LABEL, TOP_K, removeOnCloseEnabled, setRemoveOnClose, webGpuAvailable, type Turn,
+  DEFAULT_MODEL_ID, MODELS, TOP_K, modelById, sizeLabel, removeOnCloseEnabled, setRemoveOnClose, webGpuAvailable, type Turn,
 } from './lib/llm-config';
 
 // The model engine is large, so it is only fetched when the visitor actually needs it.
@@ -41,7 +41,8 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
 
   const [modelState, setModelState] = useState<ModelState>('idle');
-  const [modelCached, setModelCached] = useState(false);
+  const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
+  const [cachedIds, setCachedIds] = useState<string[]>([]);
   const [modelProgress, setModelProgress] = useState({ pct: 0, text: '' });
   const [modelError, setModelError] = useState('');
   const [removeOnClose, setRemoveOnCloseState] = useState(removeOnCloseEnabled());
@@ -59,7 +60,7 @@ export default function App() {
     engine().then(async (m) => {
       m.installCloseHandler();
       await m.cleanupIfRequested();
-      setModelCached(await m.isModelCached());
+      setCachedIds(await m.cachedModelIds());
     }).catch(() => { /* engine unavailable: the download button still works */ });
   }, []);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -107,9 +108,10 @@ export default function App() {
     setModelState('loading');
     setModelError('');
     try {
-      await (await engine()).loadModel((fraction, text) => setModelProgress({ pct: Math.round(fraction * 100), text }));
+      const m = await engine();
+      await m.loadModel(modelId, (fraction, text) => setModelProgress({ pct: Math.round(fraction * 100), text }));
       setModelState('ready');
-      setModelCached(true);
+      setCachedIds(await m.cachedModelIds());
     } catch (e) {
       setModelError(e instanceof Error ? e.message : 'The model could not be loaded.');
       setModelState('error');
@@ -119,7 +121,13 @@ export default function App() {
   async function removeModel() {
     await (await engine()).deleteModelData();
     setModelState('idle');
-    setModelCached(false);
+    setCachedIds([]);
+    setModelProgress({ pct: 0, text: '' });
+  }
+
+  async function changeModel() {
+    await (await engine()).unloadModel();
+    setModelState('idle');
     setModelProgress({ pct: 0, text: '' });
   }
 
@@ -166,6 +174,7 @@ export default function App() {
     void handleFile(e.dataTransfer.files[0]);
   }
 
+  const chosen = modelById(modelId);
   const step = !doc ? 0 : modelState !== 'ready' ? 1 : 2;
   const steps = ['Upload a document', 'Start the model', 'Chat'];
 
@@ -251,25 +260,47 @@ export default function App() {
 
             {gpu && modelState !== 'ready' && (
               <div className="model-card">
-                <span className="row"><Cpu size={18} /> <strong>{MODEL_LABEL}</strong> <span className="muted">· runs in your browser</span></span>
+                <label className="field">
+                  <span className="row"><Cpu size={16} /> <strong>Choose a model</strong> <span className="muted">· runs in your browser</span></span>
+                  <select value={modelId} onChange={(e) => setModelId(e.target.value)} disabled={modelState === 'loading'}>
+                    {MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} · {sizeLabel(m.downloadMB)}{cachedIds.includes(m.id) ? ' · downloaded' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="muted small">{chosen.note} Needs about {sizeLabel(chosen.memoryMB)} of GPU memory.</p>
+                <div className="warn">
+                  <AlertCircle size={16} />
+                  <span>Answer quality depends on the model. Smaller models are faster to load but may give wrong, incomplete or
+                    garbled answers. If a result looks off, try a larger model.</span>
+                </div>
                 {modelState === 'loading' ? (
                   <>
                     <div className="bar"><i style={{ width: `${modelProgress.pct}%` }} /></div>
                     <p className="muted small">{modelProgress.text || 'Starting…'}</p>
                   </>
-                ) : modelCached ? (
+                ) : cachedIds.includes(modelId) ? (
                   <>
                     <p className="muted">This model is already saved in your browser, so nothing needs to be downloaded.</p>
-                    <button className="btn" onClick={startModel}>Load model</button>
+                    <button className="btn" onClick={startModel}>Load {chosen.label}</button>
                   </>
                 ) : (
                   <>
-                    <p className="muted"><Download size={14} /> Starting the chatbot downloads about <strong>{MODEL_DOWNLOAD_MB} MB</strong> once.
+                    <p className="muted"><Download size={14} /> Starting downloads about <strong>{sizeLabel(chosen.downloadMB)}</strong> once.
                       Nothing to install: it is saved in your browser and runs locally. You can delete it any time below.</p>
-                    <button className="btn" onClick={startModel}>Download model &amp; start</button>
+                    <button className="btn" onClick={startModel}>Download {chosen.label} &amp; start</button>
                   </>
                 )}
                 {modelState === 'error' && <div className="err"><AlertCircle size={16} /><span>{modelError}</span></div>}
+              </div>
+            )}
+
+            {gpu && modelState === 'ready' && (
+              <div className="active-model">
+                <span><Cpu size={14} /> {chosen.label} <span className="muted">· quality depends on the model</span></span>
+                <button className="link" onClick={changeModel}><RotateCcw size={13} /> Change model</button>
               </div>
             )}
 
@@ -307,7 +338,7 @@ export default function App() {
                 <input type="checkbox" checked={removeOnClose} onChange={(e) => toggleRemoveOnClose(e.target.checked)} />
                 Remove the downloaded model when I close this tab
               </label>
-              <button className="link danger" onClick={removeModel} disabled={!modelCached && modelState !== 'ready'}>
+              <button className="link danger" onClick={removeModel} disabled={cachedIds.length === 0 && modelState !== 'ready'}>
                 <Trash2 size={14} /> Delete model data now
               </button>
             </div>
