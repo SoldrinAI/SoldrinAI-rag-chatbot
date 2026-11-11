@@ -1,5 +1,7 @@
 # SoldrinAI RAG Chatbot
 
+**Live demo: [soldrinai-rag-chatbot.vercel.app](https://soldrinai-rag-chatbot.vercel.app/)** · Part of [SoldrinAI](https://soldrinai.vercel.app/products/rag-chatbot)
+
 Upload a document and chat with it. Retrieval runs on a small serverless API; the language model runs **privately in the visitor's browser**, so there is no GPU bill and no chat history on a server.
 
 | | |
