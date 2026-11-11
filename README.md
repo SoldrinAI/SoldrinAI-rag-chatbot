@@ -1,6 +1,6 @@
 # SoldrinAI RAG Chatbot
 
-**Live demo: [soldrinai-rag-chatbot.vercel.app](https://soldrinai-rag-chatbot.vercel.app/)** · Part of [SoldrinAI](https://soldrinai.vercel.app/products/rag-chatbot)
+**Live demo: [soldrinai.com/rag-search](https://www.soldrinai.com/rag-search/)** · Part of [SoldrinAI](https://www.soldrinai.com/products/rag-chatbot)
 
 Upload a document and chat with it. Retrieval runs on a small serverless API; the language model runs **privately in the visitor's browser**, so there is no GPU bill and no chat history on a server.
 
@@ -81,6 +81,10 @@ cd frontend && npm install && npm run dev      # http://localhost:5173, /api pro
 ```
 
 Tests: `cd backend && python -m pytest tests -q` and `cd frontend && npm test`.
+
+## Serving it under a sub-path
+
+The build uses relative asset and API URLs, so the same deployment works at its own address and behind a rewrite on another site. [soldrinai.com/rag-search](https://www.soldrinai.com/rag-search/) is served this way: the website's `vercel.json` rewrites `/rag-search/*` to this deployment. Keep the page URL ending in a slash when using a sub-path.
 
 ## Deploy to Vercel
 
