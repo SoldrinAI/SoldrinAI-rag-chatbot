@@ -20,6 +20,8 @@ export const DEFAULT_LIMITS: Limits = {
 export const EMBED_BATCH = 64;
 export const DIM = 384;
 
+// API URLs are relative on purpose: the same build works at the site root and under a sub-path
+// such as /rag-search/ (the page URL must end in a slash there).
 async function failure(res: Response): Promise<Error> {
   let message = `Request failed (${res.status}).`;
   try {
@@ -33,7 +35,7 @@ async function failure(res: Response): Promise<Error> {
 export async function parseFile(file: File): Promise<Parsed> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch('/api/parse', { method: 'POST', body: form });
+  const res = await fetch('api/parse', { method: 'POST', body: form });
   if (!res.ok) throw await failure(res);
   return res.json();
 }
@@ -66,7 +68,7 @@ function halfToFloat(h: number): number {
 export async function embedTexts(texts: string[], onProgress?: (done: number, total: number) => void): Promise<Float32Array[]> {
   const out: Float32Array[] = [];
   for (let i = 0; i < texts.length; i += EMBED_BATCH) {
-    const res = await fetch('/api/embed', {
+    const res = await fetch('api/embed', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texts: texts.slice(i, i + EMBED_BATCH) }),
@@ -81,7 +83,7 @@ export async function embedTexts(texts: string[], onProgress?: (done: number, to
 
 export async function fetchLimits(): Promise<Limits> {
   try {
-    const res = await fetch('/api/limits');
+    const res = await fetch('api/limits');
     return res.ok ? await res.json() : DEFAULT_LIMITS;
   } catch {
     return DEFAULT_LIMITS;
