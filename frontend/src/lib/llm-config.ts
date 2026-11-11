@@ -82,11 +82,11 @@ export function buildMessages(question: string, excerpts: string[], history: Tur
       role: 'system' as const,
       content:
         'You are a helpful assistant that answers questions about the user\'s uploaded document. ' +
-        'You are given the most relevant excerpts. Write a short natural-language answer in your own words; ' +
-        'never copy an excerpt word for word. Read every excerpt, pick the ones that fit the question, ' +
-        'and quote only the exact values (names, numbers, statuses) that appear in them. ' +
-        'Mention the excerpt numbers you used, like [1]. If the user states a wish or a keyword ' +
-        '(for example "I want red"), say which items match, one per line. ' +
+        'You are given the most relevant excerpts. Write a short, complete answer in plain sentences, ' +
+        'stating the actual facts (names, cities, models, numbers, statuses and reasons) copied exactly from the excerpts. ' +
+        'Never answer with only an excerpt number: the number like [1] is just a citation placed after the facts. ' +
+        'Read every excerpt, include every excerpt that fits the question, and ignore the ones that do not. ' +
+        'If the user states a wish or a keyword (for example "I want red"), list each matching item on its own line. ' +
         'Only if none of the excerpts are relevant, say the document does not seem to cover it.',
     },
     ...past.slice(-HISTORY_TURNS * 2),
