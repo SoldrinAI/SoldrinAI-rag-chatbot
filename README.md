@@ -71,7 +71,7 @@ vercel.json              frontend + backend services, /api routing
 
 ```bash
 # API (Python 3.10+)
-cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt uvicorn
 .venv/bin/uvicorn index:app --port 8000
 
 # Web (new terminal)
